@@ -1,5 +1,6 @@
 #!/bin/bash
 clear
+REC_DIR="$PWD"
 
 SCRIPT_DIR="$( cd "$( dirname "$0" )" && pwd )"
 TOOL_DIR="$SCRIPT_DIR/tools"
@@ -7,6 +8,7 @@ FRAME_DIR="$TOOL_DIR/framework"
 INPU_DIR="$SCRIPT_DIR/In"
 OU_DIR="$SCRIPT_DIR/Out"
 DO_DIR="$SCRIPT_DIR/Done"
+PUSH_DIR="$SCRIPT_DIR/Push"
 
 title_ui() {
 
@@ -60,10 +62,15 @@ install_frame() {
 
   read USR_INPUT
 
+  re='^[0-9]+$'
+  if ! [[ $USR_INPUT =~ $re ]] ; then
+     echo "error: Invalid Choice!!" >&2; user_interface
+  fi
+
   # Install framework
   clear
   title_ui
-  echo "Installing framework..."
+  echo "Installing framework "${name_array[$USR_INPUT]}"..."
   echo " "
   echo "Log:"
   echo "----------"
@@ -81,7 +88,7 @@ decompile_apk() {
   echo "List of Apk inside In folder :";
   echo " "
   var=1;
-  for file in "$INPU_DIR"/*; do
+  for file in "$INPU_DIR"/*.apk; do
 
     if [ -z "$file" ];
       then
@@ -105,10 +112,15 @@ decompile_apk() {
 
   read USR_INPUT
 
+  re='^[0-9]+$'
+  if ! [[ $USR_INPUT =~ $re ]] ; then
+     echo "error: Invalid Choice!!" >&2; user_interface
+  fi
+
   # Decompile
   clear
   title_ui
-  echo "Decompiling file..."
+  echo "Decompiling file "${name_array[$USR_INPUT]}"..."
   echo " "
   echo "Log:"
   echo "----------"
@@ -125,7 +137,7 @@ recompile_apk() {
   echo "List of Apk for Recompile :";
   echo " "
   var=1;
-  for file in "$OU_DIR"/*; do
+  for file in "$OU_DIR"/*.apk; do
 
     if [ -z "$file" ];
       then
@@ -150,16 +162,126 @@ recompile_apk() {
 
   read USR_INPUT
 
+  re='^[0-9]+$'
+  if ! [[ $USR_INPUT =~ $re ]] ; then
+     echo "error: Invalid Choice!!" >&2; user_interface
+  fi
+
   # Recompile
   clear
   title_ui
-  echo "Recompiling file..."
+  echo "Recompiling file "${de_folder_name_array[$USR_INPUT]}"..."
   echo " "
   echo "Log:"
   echo "----------"
   java -jar "$TOOL_DIR/apktool.jar" b -o "$DO_DIR/${de_folder_name_array[$USR_INPUT]}" -p "$FRAME_DIR" "${de_folder_path_array[$USR_INPUT]}"
 
+
+  back_function
 }
+
+function decompile_dex() {
+  title_ui
+
+  echo "List of Dex inside In folder :";
+  echo " "
+  var=1;
+  for file in "$INPU_DIR"/*; do
+
+    if [ -z "$file" ];
+      then
+        echo "No file found."
+        back_function
+    fi
+
+    if [[ $file == *.dex ]]
+      then
+        path_array[$var]="$file"
+        name_array[$var]="${file##*/}"
+
+
+
+        echo "$var" "-" ${name_array[$var]};
+        echo " "
+
+
+        var=$((var+1));
+    fi
+
+
+  done
+
+  echo " "
+  echo "Enter the Number of Dex to Decompile:"
+
+  read USR_INPUT
+
+  re='^[0-9]+$'
+  if ! [[ $USR_INPUT =~ $re ]] ; then
+     echo "error: Invalid Choice!!" >&2; user_interface
+  fi
+
+  # Decompile
+  clear
+  title_ui
+  echo "Decompiling file "${name_array[$USR_INPUT]}"..."
+  echo " "
+  echo "Log:"
+  echo "----------"
+  java -jar "$TOOL_DIR/baksmali.jar" disassemble "${path_array[$USR_INPUT]}" -o "$OU_DIR/${name_array[$USR_INPUT]}"
+
+  back_function
+}
+
+recompile_dex() {
+  clear
+  title_ui
+  #UI Render
+  echo "List of Apk for Recompile :";
+  echo " "
+  var=1;
+  for file in "$OU_DIR"/*.dex; do
+
+    if [ -z "$file" ];
+      then
+        echo "No file found."
+        back_function
+    fi
+
+    de_folder_path_array[$var]="$file"
+    de_folder_name_array[$var]="${file##*/}"
+
+
+    echo "$var" "-" ${de_folder_name_array[$var]};
+    echo " "
+
+
+    var=$((var+1));
+  done
+
+  echo " "
+  echo "Enter the Number of apk to Recompile:"
+
+
+  read USR_INPUT
+
+  re='^[0-9]+$'
+  if ! [[ $USR_INPUT =~ $re ]] ; then
+     echo "error: Invalid Choice!!" >&2; user_interface
+  fi
+
+  # Recompile
+  clear
+  title_ui
+  echo "Recompiling file "${de_folder_name_array[$USR_INPUT]}"..."
+  echo " "
+  echo "Log:"
+  echo "----------"
+  java -jar "$TOOL_DIR/smali.jar" assemble "${de_folder_path_array[$USR_INPUT]}" -o "$DO_DIR/${de_folder_name_array[$USR_INPUT]}"
+
+  back_function
+}
+
 
 #recompile_apk
 sign_apk() {
@@ -194,18 +316,163 @@ sign_apk() {
 
   read USR_INPUT
 
-  echo ${do_apk_path_array[$USR_INPUT]}
+  re='^[0-9]+$'
+  if ! [[ $USR_INPUT =~ $re ]] ; then
+     echo "error: Invalid Choice!!" >&2; user_interface
+  fi
 
   # Sign
   clear
   title_ui
-  echo "Signing file..."
+  echo "Signing "${do_apk_name_array[$USR_INPUT]}"...."
   echo " "
   echo "Log:"
   echo "----------"
   "$TOOL_DIR/jarsigner" -keystore "$TOOL_DIR/AOSP.keystore" -storepass android "${do_apk_path_array[$USR_INPUT]}" platform
 
+  back_function
 }
+
+# Decompile
+push_sideload() {
+  clear
+  title_ui
+  #UI Render
+  echo "List of Apk inside In folder :";
+  echo " "
+  var=1;
+  for file in "$DO_DIR"/*.apk; do
+
+    if [ -z "$file" ];
+      then
+        echo "No file found."
+        back_function
+    fi
+
+    path_array[$var]="$file"
+    name_array[$var]="${file##*/}"
+    filename[$var]="${name_array[$var]%.*}"
+
+
+    echo "$var" "-" ${name_array[$var]};
+    echo " "
+
+
+    var=$((var+1));
+  done
+
+  echo " "
+  echo "Enter the Number of apk to Decompile:"
+
+  read USR_INPUT
+
+  re='^[0-9]+$'
+  if ! [[ $USR_INPUT =~ $re ]] ; then
+     echo "error: Invalid Choice!!" >&2; user_interface
+  fi
+
+  # Decompile
+  clear
+  title_ui
+  #Sign apk
+
+  echo "Signing "${name_array[$USR_INPUT]}"..."
+
+  "$TOOL_DIR/jarsigner" -keystore "$TOOL_DIR/AOSP.keystore" -storepass android "$DO_DIR/${name_array[$USR_INPUT]}" platform >/dev/null
+
+  rm -r "$PUSH_DIR/system"
+  mkdir "$PUSH_DIR/system"
+  mkdir "$PUSH_DIR/system/app"
+  mkdir "$PUSH_DIR/system/priv-app"
+  mkdir "$PUSH_DIR/system/framework"
+
+  clear
+  title_ui
+
+  echo "Pushing apk "${name_array[$USR_INPUT]}"..."
+
+  echo " "
+  echo "Where to push:"
+  echo " "
+  my_array=(
+    "1 - Puch to app folder"
+    " "
+    "2 - Puch to priv-app folder"
+  )
+
+  printf '%s\n' "${my_array[@]}"
+  echo "---------------------------------"
+  echo " "
+  echo "Make A Choice And Press ENTER:";
+
+  read CHOISE1
+
+  case $CHOISE1 in
+    1)
+      mkdir "$PUSH_DIR/system/app/${filename[$USR_INPUT]}"
+      push_path="$PUSH_DIR/system/app/${filename[$USR_INPUT]}/";;
+    2)
+      mkdir "$PUSH_DIR/system/priv-app/${filename[$USR_INPUT]}/"
+      push_path="$PUSH_DIR/system/priv-app/${filename[$USR_INPUT]}/";;
+    *) user_interface;;
+  esac
+
+  clear
+  title_ui
+  echo " "
+  echo "------------------------"
+  echo "1 - To create New Zip"
+  echo "Any - To sync Old Zip "
+  echo "------------------------"
+  echo " "
+  read old_new_zip
+  echo " "
+
+  if [[ $old_new_zip == "1" ]];
+  then
+    echo "old zip deleted.."
+    rm "$PUSH_DIR/k.zip"
+  fi
+
+  clear
+  title_ui
+
+  cp "$DO_DIR/${name_array[$USR_INPUT]}" "$push_path"
+
+  cd "$PUSH_DIR"
+
+  zip -r k.zip system META-INF >/dev/null
+
+  cd "$REC_DIR"
+
+  "$TOOL_DIR/adb" reboot recovery
+  echo " "
+  echo "wait for device reboot... 35 seconds..."
+  sleep 35;
+
+  loopk(){
+
+    k=$("$TOOL_DIR/adb" devices | grep "sideload");
+    if [[ $k == '' ]];
+    then
+      printf "\n"
+      echo "Put Device on Sideload Mode !!"
+      printf "\n"
+      read -p "Press any key to continue"
+      loopk;
+    else
+      echo "Device found !!"
+      "$TOOL_DIR/adb" sideload "$PUSH_DIR/k.zip"
+    fi
+
+  }
+  loopk;
+
+
+  back_function
+}
+
+
 
 # --------- UI -----------
 user_interface() {
@@ -219,14 +486,20 @@ my_array=(
   "3 - Recompile Files"
   " "
   "4 - Sign Files"
+  " "
+  "5 - Decompile Dex Files"
+  " "
+  "6 - Recompile Dex Files"
+  " "
+  "7 - Push Sideload"
 )
 
 printf '%s\n' "${my_array[@]}"
 echo " "
 echo " "
-echo '.----------------.'
-echo '| Any key - Exit |'
-echo '.----------------.'
+echo '.-----------.'
+echo '| ^C - Exit |'
+echo '.-----------.'
 echo " "
 echo "Make A Choice And Press ENTER:";
 read CHOISE
@@ -242,7 +515,13 @@ case $CHOISE in
 		recompile_apk;;
   4)
   	sign_apk;;
-	*) exit;;
+  5)
+    decompile_dex;;
+  6)
+    recompile_dex;;
+  7)
+    push_sideload;;
+	*) user_interface;;
 esac
 
 }
